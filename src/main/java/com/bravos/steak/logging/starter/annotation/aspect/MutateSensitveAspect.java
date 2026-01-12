@@ -48,7 +48,7 @@ public class MutateSensitveAspect {
         transformArgument(arg);
       }
       return args;
-    }).subscribeOn(Schedulers.boundedElastic());
+    }).subscribeOn(Schedulers.parallel());
 
     if (Mono.class.isAssignableFrom(returnType)) {
       return argsTransformMono.flatMap(mutatedArgs -> {

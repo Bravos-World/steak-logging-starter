@@ -1,8 +1,10 @@
 package com.bravos.steak.logging.starter.configuration;
 
 import com.bravos.steak.commonutils.shared.helper.Snowflake;
+import com.bravos.steak.logging.starter.annotation.aspect.MutateSensitveAspect;
 import com.bravos.steak.logging.starter.core.Audittor;
 import com.bravos.steak.logging.starter.core.LoggerFactory;
+import com.bravos.steak.logging.starter.transform.Transformer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -52,6 +54,13 @@ public class LoggingFactoryAutoConfiguration {
         .kafkaTemplate(kafkaTemplate)
         .serviceName(serviceName)
         .build();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(MutateSensitveAspect.class)
+  @ConditionalOnBean(Transformer.class)
+  public MutateSensitveAspect mutateSensitveAspect(Transformer transformer) {
+    return new MutateSensitveAspect(transformer);
   }
 
 }

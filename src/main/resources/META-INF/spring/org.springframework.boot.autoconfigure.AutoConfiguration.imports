@@ -1,1 +1,2 @@
 com.bravos.steak.logging.starter.configuration.TransformerAutoConfiguration
+com.bravos.steak.logging.starter.configuration.LoggingFactoryAutoConfiguration
