@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.bravos.steak"
-version = "1.0.2"
+version = "1.0.3"
 description = "logging-starter"
 
 java {
