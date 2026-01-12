@@ -19,11 +19,27 @@ A Spring Boot starter library for structured logging and audit logging with buil
 
 ## Installation
 
+### Use jitpack.io
+
+```Gradle (Kotlin DSL)
+repositories {
+    mavenCentral()
+    maven { url = uri("https://jitpack.io") }
+}
+```
+
+```Gradle (Groovy)
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+```
+
 ### Gradle (Kotlin DSL)
 
 ```kotlin
 dependencies {
-    implementation("com.bravos.steak:logging-starter:1.0.0")
+    implementation("com.github.Bravos-World:steak-logging-starter:v1.0.1")
 }
 ```
 
@@ -31,7 +47,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.bravos.steak:logging-starter:1.0.0'
+    implementation 'com.github.Bravos-World:steak-logging-starter:v1.0.1'
 }
 ```
 
