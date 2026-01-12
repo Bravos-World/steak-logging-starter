@@ -32,7 +32,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
     implementation("org.springframework.kafka:spring-kafka:4.0.1")
-    implementation("com.github.Bravos-World:steak-utils:v1.0.9")
+    implementation("com.github.Bravos-World:steak-utils:1.1.1")
 }
 
 publishing {
