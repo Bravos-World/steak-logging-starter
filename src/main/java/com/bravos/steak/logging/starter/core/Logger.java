@@ -4,24 +4,19 @@ import com.bravos.steak.commonutils.shared.helper.DateTimeHelper;
 import com.bravos.steak.logging.starter.annotation.MutateSensitiveData;
 import com.bravos.steak.logging.starter.model.EventLog;
 import lombok.Builder;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 @Builder
 public class Logger {
 
   private final LoggerFactory loggerFactory;
   private final Class<?> clazz;
-  private final Log log = LogFactory.getLog(clazz);
-  private final ExecutorService executorService = loggerFactory.getExecutorService();
 
   public void info(String eventName, String message, Map<String, Object> metadata) {
     if (this.loggerFactory.isInfoEnabled()) {
       String threadName = Thread.currentThread().getName();
-      executorService.submit(() -> {
+      loggerFactory.getExecutorService().submit(() -> {
         String messageWithClass = String.format("[%s] [%s] %s", clazz.getName(), threadName, message);
         EventLog eventLog = EventLog.builder()
             .id(this.loggerFactory.getSnowflake().next())
@@ -32,8 +27,8 @@ public class Logger {
             .metadata(metadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
+        System.out.println(messageWithClass);
         this.sendMessageToKafka(eventLog);
-        log.info(message);
       });
     }
   }
@@ -56,7 +51,7 @@ public class Logger {
   public void error(String eventName, String message, Throwable throwable, Map<String, Object> metadata) {
     if (this.loggerFactory.isErrorEnabled()) {
       String threadName = Thread.currentThread().getName();
-      executorService.submit(() -> {
+      loggerFactory.getExecutorService().submit(() -> {
         String messageWithClass = String.format("[%s] [%s] %s", clazz.getName(), threadName, message);
         EventLog eventLog = EventLog.builder()
             .id(this.loggerFactory.getSnowflake().next())
@@ -68,8 +63,8 @@ public class Logger {
             .metadata(metadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
+        System.err.println(messageWithClass);
         this.sendMessageToKafka(eventLog);
-        log.error(message, throwable);
       });
     }
   }
@@ -96,7 +91,7 @@ public class Logger {
   public void debug(String eventName, String message, Map<String, Object> metadata) {
     if (this.loggerFactory.isDebugEnabled()) {
       String threadName = Thread.currentThread().getName();
-      executorService.submit(() -> {
+      loggerFactory.getExecutorService().submit(() -> {
         String messageWithClass = String.format("[%s] [%s] %s", clazz.getName(), threadName, message);
         EventLog eventLog = EventLog.builder()
             .id(this.loggerFactory.getSnowflake().next())
@@ -107,8 +102,8 @@ public class Logger {
             .metadata(metadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
+        System.out.println(messageWithClass);
         this.sendMessageToKafka(eventLog);
-        log.debug(message);
       });
     }
   }
@@ -131,7 +126,7 @@ public class Logger {
   public void warn(String eventName, String message, Map<String, Object> metadata) {
     if (this.loggerFactory.isWarnEnabled()) {
       String threadName = Thread.currentThread().getName();
-      executorService.submit(() -> {
+      loggerFactory.getExecutorService().submit(() -> {
         String messageWithClass = String.format("[%s] [%s] %s", clazz.getName(), threadName, message);
         EventLog eventLog = EventLog.builder()
             .id(this.loggerFactory.getSnowflake().next())
@@ -143,7 +138,7 @@ public class Logger {
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
         this.sendMessageToKafka(eventLog);
-        log.warn(message);
+        System.out.println(messageWithClass);
       });
     }
   }
@@ -168,7 +163,7 @@ public class Logger {
         .send(this.loggerFactory.getEventLogTopic(), eventLog)
         .whenComplete((_, ex) -> {
           if (ex != null) {
-            log.error("Failed to send event log to Kafka: " + ex.getMessage(), ex);
+            System.err.println("Failed to send event log to Kafka: " + ex.getMessage());
           }
         });
   }

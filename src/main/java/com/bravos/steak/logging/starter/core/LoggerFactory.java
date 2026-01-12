@@ -4,7 +4,6 @@ import com.bravos.steak.commonutils.shared.helper.Snowflake;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -15,7 +14,6 @@ import java.util.concurrent.Executors;
 @Builder
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@RequiredArgsConstructor
 public final class LoggerFactory {
 
   final String serviceName;

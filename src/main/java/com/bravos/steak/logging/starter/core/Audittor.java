@@ -33,8 +33,7 @@ public class Audittor {
 
   final ObjectMapper objectMapper;
 
-  @Builder.Default
-  String auditLogTopic = "audit.log";
+  final String auditLogTopic = "audit.log";
 
   @MutateSensitiveData
   public void audit(AuditData auditData,
