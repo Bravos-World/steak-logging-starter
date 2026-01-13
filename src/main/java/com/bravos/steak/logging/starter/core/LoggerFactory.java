@@ -22,12 +22,9 @@ public final class LoggerFactory {
 
   final Snowflake snowflake;
 
-  @Builder.Default
-  int queueCapacity = 10000;
-
   final ExecutorService executorService = new ThreadPoolExecutor(
       2,
-      6,
+      8,
       60L, TimeUnit.SECONDS,
       new ArrayBlockingQueue<>(10000),
       new ThreadPoolExecutor.DiscardPolicy()
