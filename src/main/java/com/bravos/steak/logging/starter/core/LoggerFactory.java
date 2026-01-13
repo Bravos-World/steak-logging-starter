@@ -7,9 +7,7 @@ import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 @Builder
 @Getter
@@ -25,7 +23,15 @@ public final class LoggerFactory {
   final Snowflake snowflake;
 
   @Builder.Default
-  ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+  int queueCapacity = 10000;
+
+  final ExecutorService executorService = new ThreadPoolExecutor(
+      2,
+      6,
+      60L, TimeUnit.SECONDS,
+      new ArrayBlockingQueue<>(10000),
+      new ThreadPoolExecutor.DiscardPolicy()
+  );
 
   @Builder.Default
   final boolean infoEnabled = true;
@@ -50,6 +56,7 @@ public final class LoggerFactory {
     return Logger.builder()
         .loggerFactory(this)
         .clazz(clazz)
+        .log(org.slf4j.LoggerFactory.getLogger(clazz))
         .build();
   }
 

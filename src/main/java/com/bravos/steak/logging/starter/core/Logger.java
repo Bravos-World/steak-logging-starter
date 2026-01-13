@@ -12,22 +12,24 @@ public class Logger {
 
   private final LoggerFactory loggerFactory;
   private final Class<?> clazz;
+  private final org.slf4j.Logger log;
+  private final MutateHelperSensitive mutateHelperSensitive = new MutateHelperSensitive(this);
 
   public void info(String eventName, String message, Map<String, Object> metadata) {
     if (this.loggerFactory.isInfoEnabled()) {
-      String threadName = Thread.currentThread().getName();
+      Map<String, Object> immutableMetadata = Map.copyOf(metadata);
       loggerFactory.getExecutorService().submit(() -> {
-        String messageWithClass = String.format("[%s] [%s] %s", clazz.getName(), threadName, message);
+        String messageWithClass = String.format("[%s] %s", clazz.getName(), message);
         EventLog eventLog = EventLog.builder()
             .id(this.loggerFactory.getSnowflake().next())
             .level("INFO")
             .eventName(eventName)
             .message(messageWithClass)
             .service(this.loggerFactory.getServiceName())
-            .metadata(metadata)
+            .metadata(immutableMetadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
-        System.out.println(messageWithClass);
+        log.info(message);
         this.sendMessageToKafka(eventLog);
       });
     }
@@ -35,13 +37,8 @@ public class Logger {
 
   public void info(String eventName, String message, SensitiveData sensitiveData) {
     if (this.loggerFactory.isInfoEnabled()) {
-      this.infoWithSensitiveData(eventName, message, sensitiveData);
+      this.mutateHelperSensitive.infoWithSensitiveData(eventName, message, sensitiveData);
     }
-  }
-
-  @MutateSensitiveData
-  private void infoWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
-    this.info(eventName, message, sensitiveData.getMutatedData());
   }
 
   public void info(String eventName, String message) {
@@ -63,7 +60,7 @@ public class Logger {
             .metadata(metadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
-        System.err.println(messageWithClass);
+        log.error(message, throwable);
         this.sendMessageToKafka(eventLog);
       });
     }
@@ -71,13 +68,8 @@ public class Logger {
 
   public void error(String eventName, String message, Throwable throwable, SensitiveData sensitiveData) {
     if (this.loggerFactory.isErrorEnabled()) {
-      this.errorWithSensitiveData(eventName, message, throwable, sensitiveData);
+      this.mutateHelperSensitive.errorWithSensitiveData(eventName, message, throwable, sensitiveData);
     }
-  }
-
-  @MutateSensitiveData
-  private void errorWithSensitiveData(String eventName, String message, Throwable throwable, SensitiveData sensitiveData) {
-    this.error(eventName, message, throwable, sensitiveData.getMutatedData());
   }
 
   public void error(String eventName, String message) {
@@ -102,7 +94,7 @@ public class Logger {
             .metadata(metadata)
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
-        System.out.println(messageWithClass);
+        log.debug(message);
         this.sendMessageToKafka(eventLog);
       });
     }
@@ -114,13 +106,8 @@ public class Logger {
 
   public void debug(String eventName, String message, SensitiveData sensitiveData) {
     if (this.loggerFactory.isDebugEnabled()) {
-      this.debugWithSensitiveData(eventName, message, sensitiveData);
+      this.mutateHelperSensitive.debugWithSensitiveData(eventName, message, sensitiveData);
     }
-  }
-
-  @MutateSensitiveData
-  private void debugWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
-    this.debug(eventName, message, sensitiveData.getMutatedData());
   }
 
   public void warn(String eventName, String message, Map<String, Object> metadata) {
@@ -138,7 +125,7 @@ public class Logger {
             .timestamp(DateTimeHelper.currentTimeMillis())
             .build();
         this.sendMessageToKafka(eventLog);
-        System.out.println(messageWithClass);
+        log.warn(message);
       });
     }
   }
@@ -149,13 +136,8 @@ public class Logger {
 
   public void warn(String eventName, String message, SensitiveData sensitiveData) {
     if (this.loggerFactory.isWarnEnabled()) {
-      this.warnWithSensitiveData(eventName, message, sensitiveData);
+      this.mutateHelperSensitive.warnWithSensitiveData(eventName, message, sensitiveData);
     }
-  }
-
-  @MutateSensitiveData
-  private void warnWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
-    this.warn(eventName, message, sensitiveData.getMutatedData());
   }
 
   private void sendMessageToKafka(EventLog eventLog) {
@@ -163,9 +145,33 @@ public class Logger {
         .send(this.loggerFactory.getEventLogTopic(), eventLog)
         .whenComplete((_, ex) -> {
           if (ex != null) {
-            System.err.println("Failed to send event log to Kafka: " + ex.getMessage());
+            log.error("Failed to send event log to Kafka", ex);
           }
         });
   }
+
+  private record MutateHelperSensitive(Logger logger) {
+
+      @MutateSensitiveData
+      public void infoWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
+        logger.info(eventName, message, sensitiveData.getMutatedData());
+      }
+
+      @MutateSensitiveData
+      public void warnWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
+        logger.warn(eventName, message, sensitiveData.getMutatedData());
+      }
+
+      @MutateSensitiveData
+      public void debugWithSensitiveData(String eventName, String message, SensitiveData sensitiveData) {
+        logger.debug(eventName, message, sensitiveData.getMutatedData());
+      }
+
+      @MutateSensitiveData
+      public void errorWithSensitiveData(String eventName, String message, Throwable throwable, SensitiveData sensitiveData) {
+        logger.error(eventName, message, throwable, sensitiveData.getMutatedData());
+      }
+
+    }
 
 }

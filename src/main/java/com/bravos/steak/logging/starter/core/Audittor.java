@@ -14,8 +14,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Builder
 @Getter
@@ -29,62 +31,98 @@ public class Audittor {
 
   final KafkaTemplate<String, Object> kafkaTemplate;
 
-  final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+  final ExecutorService executorService = new ThreadPoolExecutor(
+      2,
+      8,
+      60L, TimeUnit.SECONDS,
+      new ArrayBlockingQueue<>(5000),
+      new ThreadPoolExecutor.AbortPolicy()
+  );
 
   final ObjectMapper objectMapper;
-
   final String auditLogTopic = "audit.log";
 
-  @MutateSensitiveData
+  private final MutateSensitiveHelper mutateSensitiveHelper = new MutateSensitiveHelper(this);
+
   public void audit(AuditData auditData,
                     SensitiveData oldValue,
                     SensitiveData newValue,
                     Map<String, String> metadata) {
-    String metadataString = null;
-    if(metadata != null && !metadata.isEmpty()) {
-      metadataString = objectMapper.writeValueAsString(metadata);
-    }
-
-    String oldValueString = checkAndConvertSensitiveDataToString(oldValue);
-    String newValueString = checkAndConvertSensitiveDataToString(newValue);
-
-    AuditLog auditLog = AuditLog.builder()
-        .id(snowflake.next())
-        .userId(auditData.getUserId())
-        .origin(auditData.getOrigin())
-        .service(this.serviceName)
-        .entityName(auditData.getEntityName())
-        .entityId(auditData.getEntityId())
-        .action(auditData.getAction())
-        .oldValue(oldValueString)
-        .newValue(newValueString)
-        .metadata(metadataString)
-        .message(auditData.getMessage())
-        .success(auditData.getSuccess())
-        .reason(auditData.getReason())
-        .timestamp(DateTimeHelper.currentTimeMillis())
-        .build();
-    kafkaTemplate.send(auditLogTopic, auditLog);
+    executorService.submit(() -> mutateSensitiveHelper.audit(auditData, oldValue, newValue, metadata));
   }
 
-  @MutateSensitiveData
-  public void audit(AuditData auditData,SensitiveData sensitiveMetadata) {
-    String metadataString = checkAndConvertSensitiveDataToString(sensitiveMetadata);
-    audit(auditData, null, null, metadataString != null ? Map.of("sensitiveMetadata", metadataString) : null);
+  public void audit(AuditData auditData, SensitiveData sensitiveMetadata) {
+    executorService.submit(() -> mutateSensitiveHelper.audit(auditData, sensitiveMetadata));
   }
 
   public void audit(AuditData auditData) {
     audit(auditData, null, null, null);
   }
 
-  private String checkAndConvertSensitiveDataToString(SensitiveData sensitiveData) {
-    if(sensitiveData != null) {
-      if(!sensitiveData.isMutated()) {
-        throw new IllegalStateException("Sensitive data has not been mutated. Use annotation @MutateSensitiveData on method.");
+  private record MutateSensitiveHelper(Audittor audittor) {
+
+    @MutateSensitiveData
+    public void audit(AuditData auditData,
+                      SensitiveData oldValue,
+                      SensitiveData newValue,
+                      Map<String, String> metadata) {
+      String metadataString = null;
+      if (metadata != null && !metadata.isEmpty()) {
+        metadataString = audittor.objectMapper.writeValueAsString(metadata);
       }
-      return objectMapper.writeValueAsString(sensitiveData.getMutatedData());
+
+      String oldValueString = checkAndConvertSensitiveDataToString(oldValue);
+      String newValueString = checkAndConvertSensitiveDataToString(newValue);
+
+      AuditLog auditLog = AuditLog.builder()
+          .id(audittor.snowflake.next())
+          .userId(auditData.getUserId())
+          .origin(auditData.getOrigin())
+          .service(audittor.serviceName)
+          .entityName(auditData.getEntityName())
+          .entityId(auditData.getEntityId())
+          .action(auditData.getAction())
+          .oldValue(oldValueString)
+          .newValue(newValueString)
+          .metadata(metadataString)
+          .message(auditData.getMessage())
+          .success(auditData.getSuccess())
+          .reason(auditData.getReason())
+          .timestamp(DateTimeHelper.currentTimeMillis())
+          .build();
+      audittor.kafkaTemplate.send(audittor.auditLogTopic, auditLog);
     }
-    return null;
+
+    @MutateSensitiveData
+    public void audit(AuditData auditData, SensitiveData sensitiveMetadata) {
+      String metadataString = checkAndConvertSensitiveDataToString(sensitiveMetadata);
+      AuditLog auditLog = AuditLog.builder()
+          .id(audittor.snowflake.next())
+          .userId(auditData.getUserId())
+          .origin(auditData.getOrigin())
+          .service(audittor.serviceName)
+          .entityName(auditData.getEntityName())
+          .entityId(auditData.getEntityId())
+          .action(auditData.getAction())
+          .metadata(metadataString)
+          .message(auditData.getMessage())
+          .success(auditData.getSuccess())
+          .reason(auditData.getReason())
+          .timestamp(DateTimeHelper.currentTimeMillis())
+          .build();
+      audittor.kafkaTemplate.send(audittor.auditLogTopic, auditLog);
+    }
+
+    private String checkAndConvertSensitiveDataToString(SensitiveData sensitiveData) {
+      if (sensitiveData != null) {
+        if (!sensitiveData.isMutated()) {
+          throw new IllegalStateException("Sensitive data has not been mutated. Use annotation @MutateSensitiveData on method.");
+        }
+        return audittor.objectMapper.writeValueAsString(sensitiveData.getMutatedData());
+      }
+      return null;
+    }
+
   }
 
 }

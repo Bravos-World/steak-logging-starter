@@ -39,7 +39,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.Bravos-World:steak-logging-starter:v1.0.1")
+    implementation("com.github.Bravos-World:steak-logging-starter:v1.0.4")
 }
 ```
 
@@ -47,7 +47,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.github.Bravos-World:steak-logging-starter:v1.0.1'
+    implementation 'com.github.Bravos-World:steak-logging-starter:v1.0.4'
 }
 ```
 
@@ -66,6 +66,10 @@ logging:
   debug: false # Enable DEBUG level logging (default: false)
   error: true  # Enable ERROR level logging (default: true)
   warn: true   # Enable WARN level logging (default: true)
+  hash:
+    key: your-hmac-hash-key # Required for sensitive data hashing
+  encrypt:
+    key: your-aes-secret-key # Required for sensitive data encryption (Base64 encoded AES key)
 ```
 
 ### Prerequisites
@@ -74,8 +78,17 @@ The library requires the following beans to be configured:
 
 1. **KafkaTemplate**: For sending logs to Kafka
 2. **Snowflake**: For generating unique IDs (from `steak-utils` library)
-3. **ObjectMapper**: For JSON serialization
-4. **TransformContext**: For sensitive data transformation (optional, required for `Transformer`)
+3. **ObjectMapper**: For JSON serialization (Jackson's `tools.jackson.databind.ObjectMapper`)
+
+### Auto-Configuration
+
+The library provides the following auto-configured beans:
+
+- **LoggerFactory**: Created when `KafkaTemplate` and `Snowflake` beans are available
+- **Audittor**: Created when `KafkaTemplate` and `Snowflake` beans are available  
+- **TransformContext**: Created automatically using `logging.hash.key` and `logging.encrypt.key` properties
+- **Transformer**: Created when `ObjectMapper` and `TransformContext` beans are available
+- **MutateSensitveAspect**: Created when `Transformer` bean is available
 
 ### Bean Configuration Example
 
@@ -87,7 +100,8 @@ public class LoggingConfig {
     public Snowflake snowflake() {
         return new Snowflake(1); // your machine ID
     }
-
+    
+    // Optional: Override default TransformContext if needed
     @Bean
     public TransformContext transformContext() {
         SecretKey secretKey = // your AES secret key
