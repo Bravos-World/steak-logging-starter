@@ -17,6 +17,8 @@ public class EventLog {
 
   Long id;
 
+  String traceId;
+
   String level;
 
   String eventName;

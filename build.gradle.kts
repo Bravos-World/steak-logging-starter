@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.bravos.steak"
-version = "1.0.6"
+version = "1.0.7"
 description = "logging-starter"
 
 java {
@@ -27,12 +27,12 @@ repositories {
 }
 
 dependencies {
-    implementation("io.projectreactor:reactor-core:3.8.1")
     implementation("org.springframework.boot:spring-boot-starter-aop:3.5.9")
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
     implementation("org.springframework.kafka:spring-kafka:4.0.1")
-    implementation("com.github.Bravos-World:steak-utils:1.1.3")
+    implementation("com.github.Bravos-World:steak-utils:1.1.4")
+    implementation("com.github.Bravos-World:steak-security-starter:v1.0.1")
 }
 
 publishing {

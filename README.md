@@ -1,10 +1,14 @@
 # Logging Starter
 
-A Spring Boot starter library for structured logging and audit logging with built-in support for sensitive data transformation (masking, hashing, and encryption). Logs are sent to Kafka for centralized log management.
+A high-performance Spring Boot starter library for structured logging and audit logging with built-in support for sensitive data transformation (masking, hashing, and encryption). Logs are sent to Kafka for centralized log management.
 
 ## Features
 
 - **Event Logging**: Structured logging with metadata support (INFO, DEBUG, WARN, ERROR levels)
+- **SLF4J-style Message Formatting**: Use `{}` placeholders for parameterized logging (e.g., `"User {} logged in"`)
+- **Auto Throwable Detection**: Automatically detects `Throwable` at the end of arguments
+- **Zero-allocation Formatting**: ThreadLocal StringBuilder for minimal GC pressure
+- **Lock-free Ring Buffer**: LMAX Disruptor-style async appender for high throughput
 - **Audit Logging**: Track entity changes with old/new value comparison
 - **Sensitive Data Protection**: Built-in support for masking, hashing, and encrypting sensitive data
 - **Kafka Integration**: Send logs to Kafka topics for centralized log management
@@ -14,7 +18,7 @@ A Spring Boot starter library for structured logging and audit logging with buil
 ## Requirements
 
 - Java 25+
-- Spring Boot 3.5+
+- Spring Boot 4.0+
 - Apache Kafka
 
 ## Installation
@@ -66,6 +70,7 @@ logging:
   debug: false # Enable DEBUG level logging (default: false)
   error: true  # Enable ERROR level logging (default: true)
   warn: true   # Enable WARN level logging (default: true)
+  console: true # Enable console logging (default: true)
   hash:
     key: your-hmac-hash-key # Required for sensitive data hashing
   encrypt:
@@ -136,16 +141,29 @@ public class UserService {
         // Simple logging
         logger.info("USER_CREATED", "User created successfully");
         
+        // SLF4J-style parameterized logging (zero-allocation)
+        logger.info("USER_CREATED", "User {} created successfully", username);
+        
+        // Multiple parameters
+        logger.info("USER_LOGIN", "User {} logged in from IP {}", username, ipAddress);
+        
+        // Escape placeholder with backslash: \{} outputs {}
+        logger.info("DEBUG_INFO", "Payload contains \\{} placeholder");
+        
         // Logging with metadata
         logger.info("USER_CREATED", "User created successfully", Map.of(
             "username", username,
             "timestamp", System.currentTimeMillis()
         ));
         
-        // Error logging
+        // Error logging - Throwable at end is auto-detected
         try {
             // some operation
         } catch (Exception e) {
+            // Throwable auto-detected at end of args
+            logger.error("USER_CREATION_FAILED", "Failed to create user {}", username, e);
+            
+            // Or explicit Throwable parameter
             logger.error("USER_CREATION_FAILED", "Failed to create user", e);
         }
     }
@@ -377,19 +395,6 @@ public class CustomEncryptHandler implements EncryptHandler {
   "success": true,
   "reason": null,
   "timestamp": 1736640000000
-}
-```
-
-## Reactive Support
-
-For reactive applications using Project Reactor, use `@MutateSensitiveDataAsync`:
-
-```java
-@MutateSensitiveDataAsync
-public Mono<Void> processData(SensitiveData data) {
-    // Sensitive data will be transformed asynchronously
-    return Mono.just(data)
-        .flatMap(this::process);
 }
 ```
 

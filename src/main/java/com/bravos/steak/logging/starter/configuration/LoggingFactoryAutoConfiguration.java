@@ -30,6 +30,9 @@ public class LoggingFactoryAutoConfiguration {
   @Value("${logging.warn:true}")
   private boolean warnEnabled;
 
+  @Value("${logging.console:true}")
+  private boolean consoleEnabled;
+
   @Bean
   @ConditionalOnMissingBean(LoggerFactory.class)
   @ConditionalOnBean({KafkaTemplate.class, Snowflake.class})
@@ -42,6 +45,7 @@ public class LoggingFactoryAutoConfiguration {
         .debugEnabled(debugEnabled)
         .errorEnabled(errorEnabled)
         .warnEnabled(warnEnabled)
+        .consoleEnabled(consoleEnabled)
         .build();
   }
 
