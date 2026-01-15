@@ -28,6 +28,7 @@ public final class LoggerFactory {
   final boolean errorEnabled;
   final boolean warnEnabled;
   final boolean consoleEnabled;
+  final boolean sendToKafka;
   final AsyncLogRingBuffer ringBuffer;
 
   final ExecutorService executorService = new ThreadPoolExecutor(
@@ -47,17 +48,20 @@ public final class LoggerFactory {
     this.errorEnabled = builder.errorEnabled;
     this.warnEnabled = builder.warnEnabled;
     this.consoleEnabled = builder.consoleEnabled;
+    this.sendToKafka = builder.sendToKafka;
     this.ringBuffer = new AsyncLogRingBuffer(builder.ringBufferSize, this::consumeLogEvent);
   }
 
   private void consumeLogEvent(AsyncLogRingBuffer.LogEvent event) {
-    EventLog eventLog = event.toEventLog();
-    kafkaTemplate.send(eventLogTopic, eventLog)
-        .whenComplete((_, ex) -> {
-          if (ex != null) {
-            System.err.println("Failed to send event log to Kafka: " + ex.getMessage());
-          }
-        });
+    if (sendToKafka) {
+      EventLog eventLog = event.toEventLog();
+      kafkaTemplate.send(eventLogTopic, eventLog)
+          .whenComplete((_, ex) -> {
+            if (ex != null) {
+              System.err.println("Failed to send event log to Kafka: " + ex.getMessage());
+            }
+          });
+    }
   }
 
   public Logger getLogger(Class<?> clazz) {
@@ -95,6 +99,7 @@ public final class LoggerFactory {
     private boolean errorEnabled = true;
     private boolean warnEnabled = true;
     private boolean consoleEnabled = true;
+    private boolean sendToKafka = true;
     private int ringBufferSize = 1024 * 16; // 16K entries
 
     public Builder serviceName(String serviceName) {
@@ -139,6 +144,11 @@ public final class LoggerFactory {
 
     public Builder consoleEnabled(boolean consoleEnabled) {
       this.consoleEnabled = consoleEnabled;
+      return this;
+    }
+
+    public Builder sendToKafka(boolean sendToKafka) {
+      this.sendToKafka = sendToKafka;
       return this;
     }
 

@@ -33,6 +33,9 @@ public class LoggingFactoryAutoConfiguration {
   @Value("${logging.console:true}")
   private boolean consoleEnabled;
 
+  @Value("${logging.send-to-kafka:true}")
+  private boolean sendToKafka;
+
   @Bean
   @ConditionalOnMissingBean(LoggerFactory.class)
   @ConditionalOnBean({KafkaTemplate.class, Snowflake.class})
