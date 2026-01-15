@@ -4,8 +4,11 @@ import com.bravos.steak.logging.starter.annotation.Sensitive;
 import com.bravos.steak.logging.starter.core.SensitiveData;
 import com.bravos.steak.logging.starter.model.TransformContext;
 import com.bravos.steak.logging.starter.transform.encrypt.EncryptHandler;
+import com.bravos.steak.logging.starter.transform.encrypt.NoEncrypt;
 import com.bravos.steak.logging.starter.transform.hash.HashHandler;
+import com.bravos.steak.logging.starter.transform.hash.NoHash;
 import com.bravos.steak.logging.starter.transform.mask.MaskHandler;
+import com.bravos.steak.logging.starter.transform.mask.NoMask;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 
@@ -34,7 +37,7 @@ public class Transformer {
   private final TransformContext transformContext;
 
   public void transform(final SensitiveData sensitiveData) throws IllegalAccessException {
-    if (!sensitiveData.isMutated()) {
+    if (sensitiveData != null && !sensitiveData.isMutated()) {
       Map<String, Object> mutatedData = new HashMap<>();
       for (Field field : sensitiveData.getClass().getDeclaredFields()) {
         field.setAccessible(true);
@@ -54,18 +57,18 @@ public class Transformer {
 
         String valueStr = objectMapper.writeValueAsString(value);
 
-        if (sensitive.maskHandler() != null) {
+        if (sensitive.maskHandler() != NoMask.class) {
           MaskHandler maskHandler = getMaskHandlerInstance(sensitive.maskHandler());
           sensitiveTransformedData.put(MASKED, maskHandler.transform(valueStr, transformContext));
         }
 
-        if (sensitive.hashHandler() != null) {
+        if (sensitive.hashHandler() != NoHash.class) {
           HashHandler hashHandler = getHashHandler(sensitive.hashHandler());
           sensitiveTransformedData.put(HASH_ALG, hashHandler.algorithm());
           sensitiveTransformedData.put(HASHED, hashHandler.transform(valueStr, transformContext));
         }
 
-        if (sensitive.encryptHandler() != null) {
+        if (sensitive.encryptHandler() != NoEncrypt.class) {
           EncryptHandler encryptHandler = getEncryptHandler(sensitive.encryptHandler());
           sensitiveTransformedData.put(ENC_ALG, encryptHandler.algorithm());
           sensitiveTransformedData.put(ENCRYPTED, encryptHandler.transform(valueStr, transformContext));

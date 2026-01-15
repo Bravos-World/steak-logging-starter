@@ -1,8 +1,11 @@
 package com.bravos.steak.logging.starter.annotation;
 
 import com.bravos.steak.logging.starter.transform.encrypt.EncryptHandler;
+import com.bravos.steak.logging.starter.transform.encrypt.NoEncrypt;
 import com.bravos.steak.logging.starter.transform.hash.HashHandler;
+import com.bravos.steak.logging.starter.transform.hash.NoHash;
 import com.bravos.steak.logging.starter.transform.mask.MaskHandler;
+import com.bravos.steak.logging.starter.transform.mask.NoMask;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -21,12 +24,12 @@ public @interface Sensitive {
   boolean ignore() default true;
 
   // Class to handle masking of the sensitive data.
-  Class<? extends MaskHandler> maskHandler();
+  Class<? extends MaskHandler> maskHandler() default NoMask.class;
 
   // Class to handle hashing of the sensitive data.
-  Class<? extends HashHandler> hashHandler();
+  Class<? extends HashHandler> hashHandler() default NoHash.class;
 
   // Class to handle encryption of the sensitive data.
-  Class<? extends EncryptHandler> encryptHandler();
+  Class<? extends EncryptHandler> encryptHandler() default NoEncrypt.class;
 
 }

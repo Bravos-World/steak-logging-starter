@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.bravos.steak"
-version = "1.0.5"
+version = "1.0.6"
 description = "logging-starter"
 
 java {
@@ -32,7 +32,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
     implementation("org.springframework.kafka:spring-kafka:4.0.1")
-    implementation("com.github.Bravos-World:steak-utils:1.1.1")
+    implementation("com.github.Bravos-World:steak-utils:1.1.3")
 }
 
 publishing {
